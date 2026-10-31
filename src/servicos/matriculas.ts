@@ -75,6 +75,7 @@ async function inserirMatricula(client: PoolClient, dados: NovaMatricula): Promi
 // Matrícula criada pela equipe (desktop/mobile logados).
 export function criar(idAluno: number, idPlano: number, dataInicio: string | null): Promise<Matricula> {
   return comTransacao(async (client) => {
+    await client.query('SELECT id FROM alunos WHERE id = $1 FOR UPDATE', [idAluno])
     const aluno = await client.query<{ ativo: boolean }>('SELECT ativo FROM alunos WHERE id = $1', [
       idAluno
     ])
@@ -84,13 +85,36 @@ export function criar(idAluno: number, idPlano: number, dataInicio: string | nul
       throw erros.conflito('Aluno arquivado: restaure o cadastro antes de matricular.')
     }
 
-    return inserirMatricula(client, { idAluno, idPlano, dataInicio, bloquearSeVigente: false })
+    return inserirMatricula(client, { idAluno, idPlano, dataInicio, bloquearSeVigente: true })
   })
 }
 
-export async function atualizarStatus(id: number, status: 'ativa' | 'inativa'): Promise<void> {
-  const r = await pool.query('UPDATE matriculas SET status = $2 WHERE id = $1', [id, status])
-  if (r.rowCount === 0) throw erros.naoEncontrado('Matrícula não encontrada.')
+export function atualizarStatus(id: number, status: 'ativa' | 'inativa'): Promise<void> {
+  return comTransacao(async (client) => {
+    const matricula = await client.query<{ id: number; id_aluno: number; status: string }>(
+      'SELECT id, id_aluno, status FROM matriculas WHERE id = $1',
+      [id]
+    )
+    const encontrada = matricula.rows[0]
+    if (!encontrada) throw erros.naoEncontrado('Matrícula não encontrada.')
+
+    if (status === 'ativa') {
+      await client.query('SELECT id FROM alunos WHERE id = $1 FOR UPDATE', [encontrada.id_aluno])
+
+      const vigente = await client.query(
+        `SELECT 1 FROM matriculas
+         WHERE id_aluno = $1 AND id <> $2 AND status = 'ativa'
+           AND data_fim_estimada >= (NOW() AT TIME ZONE $3::text)::date
+         LIMIT 1`,
+        [encontrada.id_aluno, id, config.fusoNegocio]
+      )
+      if (vigente.rows.length > 0) {
+        throw erros.conflito('Este aluno já possui uma matrícula ativa.')
+      }
+    }
+
+    await client.query('UPDATE matriculas SET status = $2 WHERE id = $1', [id, status])
+  })
 }
 
 export async function excluir(id: number): Promise<void> {
@@ -119,6 +143,7 @@ export function matricularDoSite(
     }
 
     const { id, existente } = await buscarOuCriarPublico(client, aluno)
+    await client.query('SELECT id FROM alunos WHERE id = $1 FOR UPDATE', [id])
     const matricula = await inserirMatricula(client, {
       idAluno: id,
       idPlano,

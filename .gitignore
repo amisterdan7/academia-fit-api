@@ -1,0 +1,20 @@
+# Dependências e build
+node_modules
+dist
+
+# Segredos: nunca vão para o GitHub (o .env.example, sim)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor e sistema
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea
+.DS_Store

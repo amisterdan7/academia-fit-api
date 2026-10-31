@@ -11,6 +11,7 @@ types.setTypeParser(1082, (valor: string) => valor)
 function configurarSsl(): ConnectionOptions | undefined {
   if (!config.databaseCa) return undefined
   return {
+    rejectUnauthorized: true,
     ca: config.databaseCa,
     ...(config.databaseVerificarHost ? {} : { checkServerIdentity: () => undefined })
   }
@@ -36,7 +37,7 @@ export const pool = new Pool({
   ...(ssl ? { ssl } : {})
 })
 
-// Sem este handler, uma conexão ociosa derrubada pelo Neon encerra o processo inteiro.
+// Sem este handler, uma conexão ociosa derrubada pelo Supabase encerra o processo inteiro.
 pool.on('error', (erro: Error) => {
   console.error('Erro em conexão ociosa do banco:', erro.message)
 })

@@ -38,6 +38,8 @@ rotasLegado.post('/matriculas', limiteMatricula, async (req, res) => {
   } catch (erro) {
     const { status, corpo } = converterErro(erro)
     if (status >= 500) console.error('Erro ao registrar matrícula:', erro)
-    res.status(status).json({ sucesso: false, erro: corpo.error.message })
+    const erroMensagem =
+      status === 409 ? 'Não foi possível concluir. Procure a recepção da academia.' : corpo.error.message
+    res.status(status).json({ sucesso: false, erro: erroMensagem })
   }
 })

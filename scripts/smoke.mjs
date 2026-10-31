@@ -145,6 +145,39 @@ async function principal() {
   r = await chamar('GET', '/v1/alunos', { token: admin })
   conferir('aluno passa a aparecer como "inativa"', r.json?.find((a) => a.id === aluno.id)?.status_matricula === 'inativa')
 
+  console.log('\nConcorrência (corrida de matrículas)')
+  const rAlunoCorrida = await chamar('POST', '/v1/alunos', {
+    token: admin,
+    corpo: { nome: `Smoke Corrida ${sufixo}`, data_nascimento: '1992-04-12', telefone: '(84) 98765-4321' }
+  })
+  const alunoCorrida = rAlunoCorrida.json
+  if (alunoCorrida?.id) {
+    limpeza.push(() => chamar('DELETE', `/v1/alunos/${alunoCorrida.id}`, { token: admin }))
+
+    const [resCorrida1, resCorrida2] = await Promise.all([
+      chamar('POST', '/v1/matriculas', {
+        token: admin,
+        corpo: { id_aluno: alunoCorrida.id, id_plano: plano.id, data_inicio: '2026-01-01' }
+      }),
+      chamar('POST', '/v1/matriculas', {
+        token: admin,
+        corpo: { id_aluno: alunoCorrida.id, id_plano: plano.id, data_inicio: '2026-01-01' }
+      })
+    ])
+
+    const codigos = [resCorrida1.status, resCorrida2.status].sort()
+    conferir(
+      'dois POST /v1/matriculas simultâneos para o mesmo aluno resultam em exatamente um 201 e um 409',
+      codigos[0] === 201 && codigos[1] === 409,
+      { status1: resCorrida1.status, status2: resCorrida2.status }
+    )
+
+    const idCriado = resCorrida1.status === 201 ? resCorrida1.json?.id : resCorrida2.json?.id
+    if (idCriado) {
+      limpeza.push(() => chamar('DELETE', `/v1/matriculas/${idCriado}`, { token: admin }))
+    }
+  }
+
   console.log('\nPerfil de recepção')
   const loginRecepcao = 'smoke.recepcao'
   const senhaRecepcao = 'SmokeTeste123'

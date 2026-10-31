@@ -1,7 +1,6 @@
 import { criarApp } from './app'
 import { config } from './config'
 import { pool } from './db'
-import { garantirTabela } from './servicos/usuarios'
 
 // Traduz os erros de conexão mais comuns com o Supabase em um próximo passo concreto.
 function dicaDeConexao(erro: unknown): string {
@@ -21,15 +20,23 @@ function dicaDeConexao(erro: unknown): string {
   return ''
 }
 
-async function iniciar(): Promise<void> {
+async function checarTabelaUsuarios(): Promise<void> {
   try {
-    await garantirTabela()
+    const r = await pool.query<{ existe: string | null }>(
+      "SELECT to_regclass('public.usuarios') AS existe"
+    )
+    if (!r.rows[0]?.existe) {
+      console.warn('Aviso: a tabela "usuarios" não existe. Rode npm run migrar -- --confirmar')
+    }
   } catch (erro) {
-    // Não derruba a API: planos e matrículas do site continuam funcionando.
-    console.error('Aviso: não foi possível garantir a tabela de usuários:', erro)
+    console.error('Aviso: não foi possível checar a tabela de usuários:', erro)
     const dica = dicaDeConexao(erro)
     if (dica) console.error(dica)
   }
+}
+
+async function iniciar(): Promise<void> {
+  await checarTabelaUsuarios()
 
   const servidor = criarApp().listen(config.porta, () => {
     console.log(`Servidor rodando na porta ${config.porta} 🚀`)

@@ -7,8 +7,7 @@ import {
   alterarAtivo,
   buscarPorLogin,
   criar,
-  definirSenha,
-  garantirTabela
+  definirSenha
 } from '../servicos/usuarios'
 import { novoUsuarioSchema, validar } from '../validacao'
 
@@ -39,7 +38,14 @@ async function perguntar(texto: string, secreto = false): Promise<string> {
 }
 
 async function principal(): Promise<void> {
-  await garantirTabela()
+  const r = await pool.query<{ existe: string | null }>(
+    "SELECT to_regclass('public.usuarios') AS existe"
+  )
+  if (!r.rows[0]?.existe) {
+    console.error('Erro: a tabela "usuarios" não existe. Rode npm run migrar -- --confirmar')
+    process.exitCode = 1
+    return
+  }
   console.log('Criar (ou recuperar) um administrador da Academia MisterFit\n')
 
   const nome = (await perguntar('Nome completo: ')).trim()

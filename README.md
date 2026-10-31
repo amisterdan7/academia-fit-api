@@ -21,6 +21,11 @@ npm run dev
 | `npm run dev` | API com recarga automática |
 | `npm run build` / `npm start` | compila para `dist/` e sobe a versão compilada |
 | `npm run typecheck` | confere os tipos sem gerar arquivos |
+| `npm test` | typecheck + testes unitários (somente leitura) |
+| `npm run test:e2e` | testes E2E com escrita no banco (exige `CONFIRMO_ESCREVER=sim`) |
+| `npm run verificar` | diagnóstico de conectividade e leitura do banco (somente leitura) |
+| `npm run migrar` | aplica migrações pendentes no banco (exige `-- --confirmar`) |
+| `npm run migrar:status` | lista status das migrações sem criar tabelas ou registros |
 | `npm run criar-admin` | cria um administrador, ou redefine a senha de um existente |
 | `npm run smoke` | teste de fumaça contra a API no ar (veja abaixo) |
 
@@ -54,6 +59,18 @@ código que o navegador baixa.
 
 Veja o `.env.example`. As obrigatórias são `DATABASE_URL` e `JWT_SECRET` (mínimo de 32
 caracteres); a API não sobe sem elas. `DATABASE_SSL_CA` é necessária para o Supabase.
+
+| Variável | Descrição |
+| --- | --- |
+| `NODE_ENV` | Ambiente (`development` ou `production`). Sem `production`, o CORS permite requisições vindas de `localhost` ou `127.0.0.1`. |
+| `DATABASE_URL` | URI de conexão com o banco no Supabase (preferencialmente Session pooler). |
+| `DATABASE_SSL_CA` | Caminho para o certificado CA do banco (ex: `./certs/supabase-ca.crt`) ou seu conteúdo com quebras de linha em `\n`. |
+| `DATABASE_SSL_VERIFICAR_HOST` | Quando `false`, desabilita a validação de hostname sem comprometer a verificação da CA (`rejectUnauthorized` permanece `true`). |
+| `FUSO_NEGOCIO` | Fuso de referência para cálculo de início e vencimento de matrículas (padrão `America/Sao_Paulo`). |
+| `TRUST_PROXY` | Número de proxies reversos à frente da aplicação (usar `1` em nuvem como Render ou Railway; `0` localmente). |
+| `CORS_ORIGINS` | Lista de URLs autorizadas para chamadas web separadas por vírgula. |
+| `JWT_SECRET` | Chave secreta com pelo menos 32 caracteres para assinatura de tokens. |
+| `JWT_EXPIRA_HORAS` | Tempo de expiração do token de sessão em horas (padrão `8`). |
 
 ## Como usar
 
@@ -95,9 +112,11 @@ cadastra e edita alunos e cria matrículas.
 
 - Build: `npm install && npm run build` (se a plataforma instalar só dependências de produção,
   use `npm install --include=dev`). Start: `npm start`.
-- Variáveis: `DATABASE_URL`, `DATABASE_SSL_CA`, `JWT_SECRET`, `CORS_ORIGINS` (domínio real do site), `TRUST_PROXY=1`,
-  `NODE_ENV=production`.
-- Health check: `GET /saude` (não acorda o banco) ou `GET /saude/banco`.
+- Variáveis: `DATABASE_URL`, `DATABASE_SSL_CA`, `DATABASE_SSL_VERIFICAR_HOST`, `JWT_SECRET`, `CORS_ORIGINS` (domínio real do site), `TRUST_PROXY=1`,
+  `NODE_ENV=production`, `FUSO_NEGOCIO=America/Sao_Paulo`.
+- Health checks:
+  - **Liveness / Startup probe**: `GET /saude` (retorna `{ ok: true }` sem acordar o banco).
+  - **Readiness probe**: `GET /saude/banco` (testa se o banco de dados está online e respondendo a consultas).
 - Crie o primeiro administrador rodando `npm run criar-admin` com a `DATABASE_URL` de produção.
 
 ## Teste de fumaça

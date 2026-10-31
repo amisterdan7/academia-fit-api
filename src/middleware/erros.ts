@@ -83,5 +83,12 @@ export function tratarErros(erro: unknown, req: Request, res: Response, next: Ne
 
   const { status, corpo } = converterErro(erro)
   if (status >= 500) console.error(`[${req.method} ${req.originalUrl}]`, erro)
+
+  // Rotas legadas (/planos, /matriculas) mantêm contrato { sucesso: false, erro }
+  if (req.path === '/matriculas' || req.path === '/planos') {
+    res.status(status).json({ sucesso: false, erro: corpo.error.message })
+    return
+  }
+
   res.status(status).json(corpo)
 }

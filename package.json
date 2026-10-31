@@ -26,7 +26,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@supabase/server": "^1.9.2",
     "cors": "^2.8.6",
     "dotenv": "^18.0.4",
     "express": "^5.2.1",

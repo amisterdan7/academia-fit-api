@@ -182,14 +182,19 @@ export function validar<T extends z.ZodType>(schema: T, dados: unknown): z.outpu
   return resultado.data as z.output<T>
 }
 
-// Lê um id da URL (/alunos/:id) e garante que é um inteiro positivo.
-// (No Express 5 os parâmetros de rota podem ser texto ou lista de textos, por isso o `typeof`.)
+// Lê um id da URL (/alunos/:id) e garante que é um inteiro decimal positivo.
+// Só aceita dígitos decimais (regex ^\d+$), rejeitando "1e3", "0x10", etc.
 export function idDe(
   parametros: Record<string, string | string[] | undefined>,
   nome = 'id'
 ): number {
   const bruto = parametros[nome]
-  const id = typeof bruto === 'string' ? Number(bruto) : Number.NaN
-  if (!Number.isInteger(id) || id <= 0) throw erros.validacao('Identificador inválido.')
+  if (typeof bruto !== 'string' || !/^\d+$/.test(bruto)) {
+    throw erros.validacao('Identificador inválido.')
+  }
+  const id = Number(bruto)
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw erros.validacao('Identificador inválido.')
+  }
   return id
 }

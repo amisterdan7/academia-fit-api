@@ -1,7 +1,12 @@
-import type { RequestHandler } from 'express'
+import type { Request, RequestHandler } from 'express'
 import { rateLimit } from 'express-rate-limit'
 
-type Opcoes = { janelaMin: number; max: number; formato?: 'v1' | 'legado' }
+type Opcoes = {
+  janelaMin: number
+  max: number
+  formato?: 'v1' | 'legado'
+  skip?: (req: Request) => boolean
+}
 
 // Limite de requisições por IP. Atrás de proxy (Render, Railway...), defina TRUST_PROXY=1,
 // senão todos os visitantes parecem ter o mesmo IP.
@@ -13,6 +18,7 @@ export function criarLimite(opcoes: Opcoes): RequestHandler {
     limit: opcoes.max,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    ...(opcoes.skip ? { skip: opcoes.skip } : {}),
     handler: (_req, res) => {
       const mensagem = 'Muitas requisições. Tente novamente em alguns minutos.'
       if (formato === 'legado') {

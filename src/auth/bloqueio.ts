@@ -8,6 +8,10 @@ const LIMITE_DO_MAPA = 5000
 type Registro = { falhas: number; bloqueadoAte: number; ultima: number }
 const registros = new Map<string, Registro>()
 
+export function chaveBloqueio(login: string, ip: string): string {
+  return `${login.trim().toLowerCase()}:${ip.trim()}`
+}
+
 // Segundos restantes de bloqueio (0 = liberado).
 export function segundosDeBloqueio(chave: string, agora: number = Date.now()): number {
   const registro = registros.get(chave)

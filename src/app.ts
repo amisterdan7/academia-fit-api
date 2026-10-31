@@ -4,6 +4,7 @@ import helmet from 'helmet'
 import { config } from './config'
 import { pool } from './db'
 import { rotaNaoEncontrada, tratarErros } from './middleware/erros'
+import { criarLimite } from './middleware/limites'
 import { rotasLegado } from './rotas/legado'
 import { v1 } from './rotas/v1'
 
@@ -44,6 +45,14 @@ export function criarApp(): Express {
       res.status(503).json({ ok: false })
     }
   })
+
+  // Limite global leve (300 por 15 min por IP), sem afetar /saude
+  const limiteGlobal = criarLimite({
+    janelaMin: 15,
+    max: 300,
+    skip: (req) => req.path.startsWith('/saude')
+  })
+  app.use(limiteGlobal)
 
   app.use('/v1', v1)
   app.use(rotasLegado)

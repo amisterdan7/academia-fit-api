@@ -37,6 +37,12 @@ export function converterErro(erro: unknown): { status: number; corpo: CorpoErro
       corpo: montarCorpo('VALIDACAO', 'Um campo obrigatório não foi preenchido.')
     }
   }
+  if (pg === '22001') {
+    return {
+      status: 400,
+      corpo: montarCorpo('VALIDACAO', 'Valor fornecido excede o limite de caracteres permitido.')
+    }
+  }
 
   const texto = `${pg ?? ''} ${erro instanceof Error ? erro.message : ''}`
   if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|ECONNRESET|SSL|timeout/i.test(texto)) {

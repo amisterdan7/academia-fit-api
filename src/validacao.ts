@@ -32,6 +32,7 @@ function telefoneValido(texto: string): boolean {
 const telefone = z
   .string()
   .trim()
+  .max(20, 'O telefone deve ter no máximo 20 caracteres.')
   .refine(
     (valor) => valor === '' || telefoneValido(valor),
     'Telefone inválido. Use DDD, por exemplo (84) 99999-0000.'
@@ -86,7 +87,11 @@ const recurso = z.object({
 })
 
 export const planoSchema = z.object({
-  nome: z.string().trim().min(2, 'Informe o nome do plano.').max(60, 'Nome do plano muito longo.'),
+  nome: z
+    .string()
+    .trim()
+    .min(2, 'Informe o nome do plano.')
+    .max(50, 'O nome do plano deve ter no máximo 50 caracteres.'),
   preco: z.number().min(0, 'O preço não pode ser negativo.').max(100000, 'Preço inválido.'),
   duracao_meses: z
     .number()
@@ -149,7 +154,11 @@ export const matriculaLegadaSchema = z.object({
   nome: nomePessoa,
   data_nascimento: nascimento,
   telefone,
-  nome_plano: z.string().trim().min(1, 'Informe o plano.').max(60, 'Plano inválido.')
+  nome_plano: z
+    .string()
+    .trim()
+    .min(1, 'Informe o plano.')
+    .max(50, 'O nome do plano deve ter no máximo 50 caracteres.')
 })
 
 // ---------------------------------------------------------------------------

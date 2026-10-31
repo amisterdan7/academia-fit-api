@@ -8,6 +8,13 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run test:unit",
+    "test:unit": "tsx --test \"test/**/*.test.ts\"",
+    "verificar": "tsx scripts/verificar.ts",
+    "testar:cliente": "node scripts/smoke.mjs",
+    "test:e2e": "tsx scripts/test-e2e.ts",
+    "migrar": "tsx scripts/migrar.ts",
+    "migrar:status": "tsx scripts/migrar-status.ts",
     "criar-admin": "tsx src/scripts/criar-admin.ts",
     "smoke": "node scripts/smoke.mjs"
   },

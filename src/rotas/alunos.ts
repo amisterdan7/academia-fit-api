@@ -1,17 +1,47 @@
 import { Router } from 'express'
-import { exigir } from '../auth/middleware'
+import { exigir, usuarioAtual } from '../auth/middleware'
+import { temPermissao, type Perfil } from '../auth/permissoes'
+import { erros } from '../erros'
 import * as alunos from '../servicos/alunos'
 import { alunoSchema, ativoSchema, idDe, validar } from '../validacao'
 
 // Montada em /v1/alunos, já atrás de `autenticar`.
 export const rotasAlunos: Router = Router()
 
+export function exigirPermissaoCriacaoAluno(
+  perfil: Perfil,
+  comPlano: boolean,
+  checar: (perfil: Perfil, acao: string) => boolean = temPermissao
+): void {
+  if (!checar(perfil, 'alunos:criar')) throw erros.semPermissao()
+  if (comPlano && !checar(perfil, 'matriculas:criar')) throw erros.semPermissao()
+}
+
 rotasAlunos.get('/', exigir('alunos:listar'), async (_req, res) => {
   res.json(await alunos.listar())
 })
 
 rotasAlunos.post('/', exigir('alunos:criar'), async (req, res) => {
-  res.status(201).json(await alunos.criar(validar(alunoSchema, req.body)))
+  const dados = validar(alunoSchema, req.body)
+  if (dados.id_plano !== null) {
+    exigirPermissaoCriacaoAluno(usuarioAtual(res).perfil, true)
+    res.status(201).json(
+      await alunos.criarComMatricula(
+        { nome: dados.nome, data_nascimento: dados.data_nascimento, telefone: dados.telefone },
+        dados.id_plano,
+        dados.data_inicio
+      )
+    )
+    return
+  }
+
+  res.status(201).json(
+    await alunos.criar({
+      nome: dados.nome,
+      data_nascimento: dados.data_nascimento,
+      telefone: dados.telefone
+    })
+  )
 })
 
 rotasAlunos.put('/:id', exigir('alunos:atualizar'), async (req, res) => {

@@ -145,6 +145,66 @@ async function principal() {
   r = await chamar('GET', '/v1/alunos', { token: admin })
   conferir('aluno passa a aparecer como "inativa"', r.json?.find((a) => a.id === aluno.id)?.status_matricula === 'inativa')
 
+  console.log('\nCadastro de aluno com matrícula na mesma transação')
+  const nomeComPlano = `Smoke Com Plano ${sufixo}`
+  r = await chamar('POST', '/v1/alunos', {
+    token: admin,
+    corpo: {
+      nome: nomeComPlano,
+      data_nascimento: '1993-05-20',
+      telefone: '(84) 97777-1111',
+      id_plano: plano.id,
+      data_inicio: '2026-01-31'
+    }
+  })
+  const alunoComPlano = r.json
+  conferir(
+    'cria aluno com plano = 201 e retorna matricula com data_fim_estimada',
+    r.status === 201 &&
+      Boolean(alunoComPlano?.id) &&
+      Boolean(alunoComPlano?.matricula?.id) &&
+      alunoComPlano?.matricula?.id_aluno === alunoComPlano?.id &&
+      alunoComPlano?.matricula?.id_plano === plano.id &&
+      alunoComPlano?.matricula?.data_inicio === '2026-01-31' &&
+      alunoComPlano?.matricula?.data_fim_estimada === somarMeses('2026-01-31', plano.duracao_meses),
+    r
+  )
+  if (alunoComPlano?.id) {
+    limpeza.push(() => chamar('DELETE', `/v1/alunos/${alunoComPlano.id}`, { token: admin }))
+  }
+
+  r = await chamar('POST', '/v1/alunos', {
+    token: admin,
+    corpo: {
+      nome: nomeComPlano,
+      data_nascimento: '1993-05-20',
+      id_plano: plano.id
+    }
+  })
+  conferir(
+    'aluno duplicado (mesmo nome + data_nascimento) com plano = 409 CONFLITO',
+    r.status === 409 && r.json?.error?.code === 'CONFLITO',
+    r
+  )
+
+  const nomePlanoInexistente = `Smoke Plano Inexistente ${sufixo}`
+  r = await chamar('POST', '/v1/alunos', {
+    token: admin,
+    corpo: {
+      nome: nomePlanoInexistente,
+      data_nascimento: '1994-08-10',
+      id_plano: 999999999
+    }
+  })
+  conferir('criar aluno com plano inexistente = 404 NAO_ENCONTRADO', r.status === 404 && r.json?.error?.code === 'NAO_ENCONTRADO', r)
+
+  r = await chamar('GET', '/v1/alunos', { token: admin })
+  conferir(
+    'aluno não foi criado após falha de plano inexistente (rollback da transação)',
+    Array.isArray(r.json) && !r.json.some((a) => a.nome === nomePlanoInexistente),
+    r.json?.find((a) => a.nome === nomePlanoInexistente)
+  )
+
   console.log('\nConcorrência (corrida de matrículas)')
   const rAlunoCorrida = await chamar('POST', '/v1/alunos', {
     token: admin,
@@ -204,6 +264,25 @@ async function principal() {
   if (recepcao) {
     r = await chamar('GET', '/v1/alunos', { token: recepcao })
     conferir('recepção pode listar alunos (200)', r.status === 200, r.status)
+
+    r = await chamar('POST', '/v1/alunos', {
+      token: recepcao,
+      corpo: {
+        nome: `Smoke Recepcao Plano ${sufixo}`,
+        data_nascimento: '1996-11-05',
+        telefone: '(84) 96666-2222',
+        id_plano: plano.id
+      }
+    })
+    const alunoRecepcao = r.json
+    conferir(
+      'recepção pode criar aluno com plano na mesma transação (201)',
+      r.status === 201 && Boolean(alunoRecepcao?.id) && Boolean(alunoRecepcao?.matricula?.id),
+      r
+    )
+    if (alunoRecepcao?.id) {
+      limpeza.push(() => chamar('DELETE', `/v1/alunos/${alunoRecepcao.id}`, { token: admin }))
+    }
 
     r = await chamar('DELETE', `/v1/alunos/${aluno.id}`, { token: recepcao })
     conferir('recepção NÃO pode excluir aluno (403)', r.status === 403, r.status)

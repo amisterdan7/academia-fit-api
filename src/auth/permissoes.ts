@@ -1,3 +1,5 @@
+import { erros } from '../erros'
+
 export type Perfil = 'admin' | 'recepcao'
 
 // ---------------------------------------------------------------------------
@@ -25,4 +27,13 @@ export function temPermissao(perfil: Perfil, acao: string): boolean {
 export function permissoesDe(perfil: Perfil): string[] {
   const lista = PERMISSOES[perfil]
   return lista === '*' ? ['*'] : [...lista]
+}
+
+export function exigirPermissaoCriacaoAluno(
+  perfil: Perfil,
+  comPlano: boolean,
+  checar: (perfil: Perfil, acao: string) => boolean = temPermissao
+): void {
+  if (!checar(perfil, 'alunos:criar')) throw erros.semPermissao()
+  if (comPlano && !checar(perfil, 'matriculas:criar')) throw erros.semPermissao()
 }

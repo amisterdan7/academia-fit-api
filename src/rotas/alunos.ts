@@ -1,21 +1,12 @@
 import { Router } from 'express'
 import { exigir, usuarioAtual } from '../auth/middleware'
-import { temPermissao, type Perfil } from '../auth/permissoes'
-import { erros } from '../erros'
+import { exigirPermissaoCriacaoAluno } from '../auth/permissoes'
 import * as alunos from '../servicos/alunos'
 import { alunoSchema, ativoSchema, idDe, validar } from '../validacao'
 
 // Montada em /v1/alunos, já atrás de `autenticar`.
 export const rotasAlunos: Router = Router()
-
-export function exigirPermissaoCriacaoAluno(
-  perfil: Perfil,
-  comPlano: boolean,
-  checar: (perfil: Perfil, acao: string) => boolean = temPermissao
-): void {
-  if (!checar(perfil, 'alunos:criar')) throw erros.semPermissao()
-  if (comPlano && !checar(perfil, 'matriculas:criar')) throw erros.semPermissao()
-}
+export { exigirPermissaoCriacaoAluno }
 
 rotasAlunos.get('/', exigir('alunos:listar'), async (_req, res) => {
   res.json(await alunos.listar())

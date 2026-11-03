@@ -70,11 +70,18 @@ export const trocarSenhaSchema = z.object({
   nova_senha: senhaNova
 })
 
-export const alunoSchema = z.object({
-  nome: nomePessoa,
-  data_nascimento: nascimento,
-  telefone
-})
+export const alunoSchema = z
+  .object({
+    nome: nomePessoa,
+    data_nascimento: nascimento,
+    telefone,
+    id_plano: idSchema.nullish().transform((valor) => valor ?? null),
+    data_inicio: dataISO.nullish().transform((valor) => valor ?? null)
+  })
+  .refine((dados) => dados.data_inicio === null || dados.id_plano !== null, {
+    message: 'A data de início só pode ser informada junto com o plano.',
+    path: ['data_inicio']
+  })
 
 export const ativoSchema = z.object({ ativo: z.boolean() })
 

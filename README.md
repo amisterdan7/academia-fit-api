@@ -90,7 +90,8 @@ caracteres); a API não sobe sem elas. `DATABASE_SSL_CA` é necessária para o S
 | `GET /v1/planos` | pública |
 | `POST /v1/planos`, `PUT /v1/planos/:id`, `DELETE /v1/planos/:id` | `planos:criar`, `planos:atualizar`, `planos:excluir` |
 | `GET /v1/alunos` | `alunos:listar` |
-| `POST /v1/alunos`, `PUT /v1/alunos/:id` | `alunos:criar`, `alunos:atualizar` |
+| `POST /v1/alunos` | `alunos:criar` (e `matriculas:criar` quando enviado `id_plano`, criando aluno e matrícula na mesma transação) |
+| `PUT /v1/alunos/:id` | `alunos:atualizar` |
 | `PATCH /v1/alunos/:id/ativo` | `alunos:desativar` (arquivar e restaurar) |
 | `DELETE /v1/alunos/:id` | `alunos:excluir` |
 | `GET /v1/matriculas`, `POST /v1/matriculas` | `matriculas:listar`, `matriculas:criar` |

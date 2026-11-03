@@ -2,8 +2,10 @@ import type { PoolClient } from 'pg'
 import { config } from '../config'
 import { comTransacao, pool, primeiraLinha } from '../db'
 import { erros } from '../erros'
+import { inserirMatricula, type Matricula } from './matriculas'
 
 export type Aluno = { id: number; nome: string; data_nascimento: string; telefone: string | null }
+export type AlunoComMatricula = Aluno & { matricula: Matricula }
 
 export type AlunoListado = Aluno & {
   ativo: boolean
@@ -43,14 +45,48 @@ export async function listar(): Promise<AlunoListado[]> {
   return r.rows
 }
 
-export async function criar(dados: DadosAluno): Promise<Aluno> {
-  const r = await pool.query<Aluno>(
+async function inserirNovoAluno(
+  db: { query: PoolClient['query'] },
+  dados: DadosAluno
+): Promise<Aluno> {
+  const existente = await db.query(
+    `SELECT 1 FROM alunos
+     WHERE lower(btrim(nome)) = lower($1::text) AND data_nascimento = $2::date
+     LIMIT 1`,
+    [dados.nome, dados.data_nascimento]
+  )
+  if (existente.rows.length > 0) {
+    throw erros.conflito('Já existe um aluno cadastrado com esse nome e data de nascimento.')
+  }
+
+  const r = await db.query<Aluno>(
     `INSERT INTO alunos (nome, data_nascimento, telefone)
      VALUES ($1, $2::date, $3)
      RETURNING ${COLUNAS}`,
     [dados.nome, dados.data_nascimento, dados.telefone]
   )
   return primeiraLinha(r.rows)
+}
+
+export async function criar(dados: DadosAluno): Promise<Aluno> {
+  return inserirNovoAluno(pool, dados)
+}
+
+export function criarComMatricula(
+  dados: DadosAluno,
+  idPlano: number,
+  dataInicio: string | null
+): Promise<AlunoComMatricula> {
+  return comTransacao(async (client) => {
+    const aluno = await inserirNovoAluno(client, dados)
+    const matricula = await inserirMatricula(client, {
+      idAluno: aluno.id,
+      idPlano,
+      dataInicio,
+      bloquearSeVigente: false
+    })
+    return { ...aluno, matricula }
+  })
 }
 
 export async function atualizar(id: number, dados: DadosAluno): Promise<Aluno> {

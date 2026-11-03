@@ -34,7 +34,7 @@ export async function listar(): Promise<MatriculaComNomes[]> {
   return r.rows
 }
 
-type NovaMatricula = {
+export type NovaMatricula = {
   idAluno: number
   idPlano: number
   dataInicio: string | null // null = hoje, no fuso da academia
@@ -43,7 +43,7 @@ type NovaMatricula = {
 
 // ÚNICO lugar que calcula a data de fim: início + duração do plano, feito no banco.
 // (31/01 + 1 mês = 28/02, e não 03/03 como acontece com setMonth do JavaScript.)
-async function inserirMatricula(client: PoolClient, dados: NovaMatricula): Promise<Matricula> {
+export async function inserirMatricula(client: PoolClient, dados: NovaMatricula): Promise<Matricula> {
   const plano = await client.query<{ duracao_meses: number }>(
     'SELECT duracao_meses FROM planos WHERE id = $1',
     [dados.idPlano]

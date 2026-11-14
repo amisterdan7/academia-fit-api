@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 
 const padroes = {
-  DATABASE_URL: '"postgresql://postgres:128anwrMxPPwrMdk@db.eptyjpdpcvindwlspewb.supabase.co:5432/postgres"',
+  DATABASE_URL: '"URL do Supabase"',
   DATABASE_SSL_CA: './certs/supabase-ca.crt',
   DATABASE_SSL_VERIFICAR_HOST: 'true',
   PORT: '3333',

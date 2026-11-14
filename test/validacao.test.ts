@@ -1,6 +1,7 @@
 import test, { describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { exigirPermissaoCriacaoAluno } from '../src/auth/permissoes'
+import { ErroHttp } from '../src/erros'
 import { alunoSchema, matriculaLegadaSchema, planoSchema, validar } from '../src/validacao'
 
 describe('Validação - Limites de tamanho', () => {
@@ -23,7 +24,8 @@ describe('Validação - Limites de tamanho', () => {
           preco: 100,
           duracao_meses: 1
         }),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.codigo, 'VALIDACAO')
         assert.match(erro.message, /máximo 50 caracteres/i)
         return true
@@ -51,7 +53,8 @@ describe('Validação - Limites de tamanho', () => {
           data_nascimento: '1995-05-10',
           telefone: telefoneLongo
         }),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.codigo, 'VALIDACAO')
         assert.match(erro.message, /máximo 20 caracteres/i)
         return true
@@ -67,7 +70,8 @@ describe('Validação - Limites de tamanho', () => {
           data_nascimento: '1995-05-10',
           nome_plano: 'P'.repeat(51)
         }),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.codigo, 'VALIDACAO')
         assert.match(erro.message, /máximo 50 caracteres/i)
         return true
@@ -115,7 +119,8 @@ describe('Validação - Cadastro de aluno com matrícula opcional', () => {
           data_nascimento: '1998-03-20',
           data_inicio: '2026-02-01'
         }),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.status, 400)
         assert.equal(erro.codigo, 'VALIDACAO')
         assert.match(erro.message, /data de início só pode ser informada junto com o plano/i)
@@ -133,7 +138,8 @@ describe('Validação - Cadastro de aluno com matrícula opcional', () => {
             data_nascimento: '1998-03-20',
             id_plano: idInvalido
           }),
-        (erro: any) => {
+        (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
           assert.equal(erro.status, 400)
           assert.equal(erro.codigo, 'VALIDACAO')
           return true
@@ -158,7 +164,8 @@ describe('Permissão - Criação de aluno com e sem matrícula', () => {
 
     assert.throws(
       () => exigirPermissaoCriacaoAluno('recepcao', true, soAlunosCriar),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.status, 403)
         assert.equal(erro.codigo, 'SEM_PERMISSAO')
         return true
@@ -170,7 +177,8 @@ describe('Permissão - Criação de aluno com e sem matrícula', () => {
     const semPermissoes = () => false
     assert.throws(
       () => exigirPermissaoCriacaoAluno('recepcao', false, semPermissoes),
-      (erro: any) => {
+      (erro: unknown) => {
+        assert.ok(erro instanceof ErroHttp)
         assert.equal(erro.status, 403)
         assert.equal(erro.codigo, 'SEM_PERMISSAO')
         return true

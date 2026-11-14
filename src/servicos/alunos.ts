@@ -1,7 +1,7 @@
 import type { PoolClient } from 'pg'
 import { config } from '../config'
 import { comTransacao, pool, primeiraLinha } from '../db'
-import { erros } from '../erros'
+import { codigoPg, erros } from '../erros'
 import { inserirMatricula, type Matricula } from './matriculas'
 
 export type Aluno = { id: number; nome: string; data_nascimento: string; telefone: string | null }
@@ -107,12 +107,34 @@ export async function definirAtivo(id: number, ativo: boolean): Promise<void> {
   if (r.rowCount === 0) throw erros.naoEncontrado('Aluno não encontrado.')
 }
 
-// Exclusão definitiva: apaga as matrículas do aluno junto (tudo ou nada).
+const MENSAGEM_HISTORICO_MATRICULAS =
+  'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
+
+export function podeExcluirAluno(quantidadeMatriculas: number): boolean {
+  return quantidadeMatriculas === 0
+}
+
+// Exclusão definitiva: só permite excluir aluno sem histórico de matrículas.
 export function excluir(id: number): Promise<void> {
   return comTransacao(async (client) => {
-    await client.query('DELETE FROM matriculas WHERE id_aluno = $1', [id])
-    const r = await client.query('DELETE FROM alunos WHERE id = $1', [id])
-    if (r.rowCount === 0) throw erros.naoEncontrado('Aluno não encontrado.')
+    const contagem = await client.query<{ total: number }>(
+      'SELECT COUNT(*)::int AS total FROM matriculas WHERE id_aluno = $1',
+      [id]
+    )
+    const quantidadeMatriculas = Number(contagem.rows[0]?.total ?? 0)
+    if (!podeExcluirAluno(quantidadeMatriculas)) {
+      throw erros.conflito(MENSAGEM_HISTORICO_MATRICULAS)
+    }
+
+    try {
+      const r = await client.query('DELETE FROM alunos WHERE id = $1', [id])
+      if (r.rowCount === 0) throw erros.naoEncontrado('Aluno não encontrado.')
+    } catch (erro) {
+      if (codigoPg(erro) === '23503') {
+        throw erros.conflito(MENSAGEM_HISTORICO_MATRICULAS)
+      }
+      throw erro
+    }
   })
 }
 
